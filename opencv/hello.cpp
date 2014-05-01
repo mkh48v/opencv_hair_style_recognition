@@ -244,14 +244,12 @@ int main()
 	CvHaarClassifierCascade* facecascade = 0;
 	facecascade = (CvHaarClassifierCascade*) cvLoad(faceclassifer, 0, 0, 0 );
 
+	const char *eyeclassifer = "C:\\opencv\\sources\\data\\haarcascades\\haarcascade_eye.xml";
+	CvHaarClassifierCascade* eyecascade = 0;
+	eyecascade = (CvHaarClassifierCascade*) cvLoad(eyeclassifer, 0, 0, 0 );
+
 	CvMemStorage* storage = 0;
 	storage = cvCreateMemStorage(0);
-
-	if(!storage)
-	{
-		std::cerr<<"error: storage error!!"<<std::endl;
-		return -2;
-	}
 
 	//edge detection 먼저
 	edge_detection();
@@ -270,7 +268,37 @@ int main()
 
 
 	//얼굴 이미지에서 눈을 찾아야 할 것 같음
+	cv::Mat face_mat= cv::imread("hello_world.jpg");
 
+	// Transform it into the C++ cv::Mat format
+	cv::Mat image(face_mat); 
+
+	// Crop the full image to that image contained by the rectangle myROI
+	// Note that this doesn't copy the data
+	CvRect quarter_of_face;
+	quarter_of_face.x = face_rect -> x;
+	quarter_of_face.y = face_rect -> y;
+	quarter_of_face.width = (face_rect -> width)*0.5;
+	quarter_of_face.height = (face_rect -> height)*0.5;
+
+
+	cv::Mat cropped_face = image(quarter_of_face);
+
+	//cropped_face를 IplImage로 변환해야 함
+	IplImage* face_iplimage = &IplImage(cropped_face);
+
+	//face_iplimage에서 눈깔을 찾는다
+	CvSeq *eye = cvHaarDetectObjects(face_iplimage, eyecascade, storage, 1.4 , 1, 0);
+
+	//검출된 눈깔 Rectangle 받아오기(눈알은 하나만 입력되고 인식됐다고 가정)
+	CvRect *eye_rect = 0;
+	eye_rect = (CvRect*) cvGetSeqElem(eye, 0);
+
+	//eye_rect의 좌표를 기억해놓아서 앞머리의 상대적 길이를 판정할 때 도움을 받아야 함 
+	cvRectangle(frame, cvPoint( face_rect->x + eye_rect->x, (face_rect->y)+(eye_rect->y) ), cvPoint(face_rect->x + eye_rect->x+eye_rect->width, (face_rect->y)+(eye_rect->y)+eye_rect->height), cvScalar(0,255,0), 3, CV_AA, 0);
+	
+
+	
 	
 	cvRectangle(frame, cvPoint(face_rect->x, face_rect->y), cvPoint(face_rect->x+face_rect->width, face_rect->y+face_rect->height), cvScalar(0,255,0), 3, CV_AA, 0);
 	grab_cut(face_rect->x, face_rect->y + (0.1)*(face_rect->height), face_rect->width, face_rect->height);//얼굴 크롭하기
