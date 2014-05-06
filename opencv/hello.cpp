@@ -66,7 +66,7 @@ void hair_style_detection(int x, int y, int width, int height)
 		result,    // 분할 결과
 		rectangle,   // 전경을 포함하는 직사각형
 		bgModel, fgModel, // 모델
-		3,     // 반복 횟수
+		1,     // 반복 횟수
 		cv::GC_INIT_WITH_RECT); // 직사각형 사용
 
 	// cv::GC_PR_FGD 전경에 속할 수도 있는 화소(직사각형 내부의 화소 초기값)
@@ -158,7 +158,7 @@ void hair_style_detection(int x, int y, int width, int height)
 
 	//옆머리 아랫쪽 경계를 찾아야 함
 	//오른쪽 옆머리의 두께를 위에서부터 내려가며 측정해나가며 0이 되는 순간 그곳의 row, column 좌표를 기록한다
-	int left_hair_lower_bound=hair_upper_boundary_row + (chin_line_bound - hair_upper_boundary_row)*(1.0/2.0);
+	int left_hair_lower_bound=hair_upper_boundary_row + (chin_line_bound - hair_upper_boundary_row)*(1.0/2.0) - 1;
 	while(left_hair_lower_bound < chin_line_bound)
 	{
 		//우선 result의 col 좌표를 찾아야함
