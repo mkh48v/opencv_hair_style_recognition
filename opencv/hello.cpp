@@ -17,7 +17,7 @@ int kernel_size = 3;
 
 int eye_upper_bound;
 
-cv::Mat result;
+cv::Mat grabbed_face;
 
 enum front_hair_style
 {
@@ -53,7 +53,25 @@ void edge_detection()
 	CannyThreshold(0, 0);
 }
 
-void hair_style_detection(int x, int y, int width, int height)
+void show_detected_edges() 
+{
+	//이쪽에서 아마 result 가 흰색이고 detected_edges에서도 흰색인 부분을 찾는다면 두 이미지를 합성하여 머리 경계를 찾아낼수 있을 것이다
+	for(int i = 0; i < detected_edges.rows; i++)
+	{
+		int j=0;
+		while(j < detected_edges.cols)
+		{
+			if(grabbed_face.at<uchar>(i,j) != 255 && detected_edges.at<uchar>(i,j) == 255)
+				grabbed_face.at<uchar>(i,j) = 255;
+
+			j++;
+		}
+	}
+	cv::namedWindow("Result");
+	cv::imshow("Result", grabbed_face);
+}
+
+void grabcut_face(int x, int y, int width, int height)
 {
 	cv::Mat image= cv::imread("hello_world.jpg");
 
@@ -63,7 +81,7 @@ void hair_style_detection(int x, int y, int width, int height)
 	
 	cv::Mat bgModel, fgModel; // 모델 (초기 사용)
 	cv::grabCut (image,    // 입력 이미지
-		result,    // 분할 결과
+		grabbed_face,    // 분할 결과
 		rectangle,   // 전경을 포함하는 직사각형
 		bgModel, fgModel, // 모델
 		1,     // 반복 횟수
@@ -71,23 +89,24 @@ void hair_style_detection(int x, int y, int width, int height)
 
 	// cv::GC_PR_FGD 전경에 속할 수도 있는 화소(직사각형 내부의 화소 초기값)
 	// cv::GC_PR_FGD와 동일한 값을 갖는 화소를 추출해 분할한 이진 영상을 얻음
-	cv::compare(result, cv::GC_PR_FGD, result, cv::CMP_EQ);
+	cv::compare(grabbed_face, cv::GC_PR_FGD, grabbed_face, cv::CMP_EQ);
 	// 전경일 가능성이 있는 화소를 마크한 것을 가져오기
 	cv::Mat foreground(image.size(), CV_8UC3, cv::Scalar(255, 255, 255));
 	// 결과 이미지 생성
-	image.copyTo(foreground, result);
+	image.copyTo(foreground, grabbed_face);
 	// 배경 화소는 복사되지 않음
-	
+}
 
-	int front_hair_lower_bound;
-	for(int i = 0; i < result.rows; i++)
+int get_front_hair_lower_bound() 
+{
+	int front_hair_lower_bound = 0;
+	for(int i = 0; i < grabbed_face.rows; i++)
 	{
 		int j=0;
-		while(j < result.cols)
+		while(j < grabbed_face.cols)
 		{
-			if(result.at<uchar>(i,j) == 255)
+			if(grabbed_face.at<uchar>(i,j) == 255)
 			{
-				//여기서부터 윗머리 경계 나올때까지 startingx값을 빼나갈 것이다.(여기는 앞머리 아랫쪽 경계)
 				front_hair_lower_bound=i;
 				break;
 			}
@@ -96,14 +115,17 @@ void hair_style_detection(int x, int y, int width, int height)
 				j++;
 			}
 		}
-		if(j != result.cols)
+		if(j != grabbed_face.cols)
 		{
 			break;
 		}
 	}
+	return front_hair_lower_bound;
+}
 
-	//윗머리 끝 좌표
-	int hair_upper_boundary_row=0;
+int get_head_upper_bound() 
+{
+	int hair_upper_boundary_row = 0;
 	int hair_upper_edge_col=0;
 	for(int i = 0; i < detected_edges.rows; i++)
 	{
@@ -127,15 +149,18 @@ void hair_style_detection(int x, int y, int width, int height)
 			break;
 		}
 	}
+	return hair_upper_boundary_row;
+}
 
-	//턱 경계 찾아야 함
-	int chin_line_bound = front_hair_lower_bound+1;
-	while(chin_line_bound < result.rows)
+int get_chin_line_bound(int front_hair_lower_bound) 
+{
+	int chin_line_bound = front_hair_lower_bound + 1;
+	while(chin_line_bound < grabbed_face.rows)
 	{
 		int j=0;
-		while(j < result.cols)
+		while(j < grabbed_face.cols)
 		{
-			if(result.at<uchar>(chin_line_bound,j) == 255)
+			if(grabbed_face.at<uchar>(chin_line_bound,j) == 255)
 			{
 				break;
 			}
@@ -144,7 +169,7 @@ void hair_style_detection(int x, int y, int width, int height)
 				j++;
 			}
 		}
-		if(j == result.cols)
+		if(j == grabbed_face.cols)
 		{
 			//여기가 턱 끝임
 			chin_line_bound -= 1;//까만색 줄 위의 마지막 흰색 부분으로 bound 값 바꿈
@@ -155,89 +180,11 @@ void hair_style_detection(int x, int y, int width, int height)
 			chin_line_bound++;
 		}
 	}
+	return chin_line_bound;
+}
 
-	//옆머리 아랫쪽 경계를 찾아야 함
-	//오른쪽 옆머리의 두께를 위에서부터 내려가며 측정해나가며 0이 되는 순간 그곳의 row, column 좌표를 기록한다
-	int left_hair_lower_bound=hair_upper_boundary_row + (chin_line_bound - hair_upper_boundary_row)*(1.0/2.0) - 1;
-	while(left_hair_lower_bound < chin_line_bound)
-	{
-		//우선 result의 col 좌표를 찾아야함
-		int face_left_boundary=0;
-		while(face_left_boundary < result.cols)
-		{
-			if(result.at<uchar>(left_hair_lower_bound,face_left_boundary) == 255)
-			{
-				break;
-			}
-			else
-			{
-				face_left_boundary++;
-			}
-		}
-		//찾은 col 왼쪽 경계에서부터 detected_edges에 있는 옆 경계까지의 거리를 측정해야 함
-		int hair_left_boundary = face_left_boundary-2;
-		while(hair_left_boundary>0)
-		{
-			if(detected_edges.at<uchar>(left_hair_lower_bound,hair_left_boundary) == 255)
-			{
-				break;
-			}
-			else
-			{
-				hair_left_boundary--;
-			}
-		}
-		int left_hair_width = face_left_boundary - hair_left_boundary;
-		if(left_hair_width <= 2)
-		{
-			break;
-		}
-		else
-		{
-			left_hair_lower_bound++;
-		}
-	}
-
-
-	side_hair_style detected_side_hair;
-	//옆머리 기장 판정
-	if( left_hair_lower_bound < chin_line_bound && left_hair_lower_bound >= hair_upper_boundary_row + (chin_line_bound - hair_upper_boundary_row)*(2.0/3.0) )
-	{
-		//옆머리 짧다
-		detected_side_hair = short_left_hair;
-	}
-	else if(left_hair_lower_bound >= chin_line_bound)
-	{
-		//옆머리 길다
-		detected_side_hair = long_left_hair;
-	}
-	else
-	{
-		//옆머리 없다(묶었다)
-		detected_side_hair = tied_hair;
-	}
-
-	front_hair_style detected_front_hair;
-	//앞머리 기장 판정
-	if( front_hair_lower_bound > hair_upper_boundary_row + 2*(eye_upper_bound-hair_upper_boundary_row)/3.0 )
-	{
-		//앞머리 길다
-		detected_front_hair = long_front_hair;
-	}
-	else if(
-		front_hair_lower_bound <= hair_upper_boundary_row + 2*(eye_upper_bound-hair_upper_boundary_row)/3.0
-		&& front_hair_lower_bound > hair_upper_boundary_row + (eye_upper_bound-hair_upper_boundary_row)/2.0
-		)
-	{
-		//앞머리 짧다
-		detected_front_hair = short_front_hair;
-	}
-	else
-	{
-		//앞머리 없다
-		detected_front_hair =  no_front_hair;
-	}
-	
+void show_recommended_hairstyle( front_hair_style detected_front_hair, side_hair_style detected_side_hair ) 
+{
 	//앞머리 긴 여자
 	if(detected_front_hair == long_front_hair && detected_side_hair == long_left_hair)
 	{
@@ -297,22 +244,53 @@ void hair_style_detection(int x, int y, int width, int height)
 		cv::namedWindow("recommended hairstyle");
 		cv::imshow("recommended hairstyle",hairtyle_image);
 	}
+}
 
-	//이쪽에서 아마 result 가 흰색이고 detected_edges에서도 흰색인 부분을 찾는다면 두 이미지를 합성하여 머리 경계를 찾아낼수 있을 것이다
-	for(int i = 0; i < detected_edges.rows; i++)
+side_hair_style judge_side_hairstyle( int left_hair_lower_bound, int chin_line_bound, int hair_upper_boundary_row) 
+{
+	side_hair_style detected_side_hair;
+	//옆머리 기장 판정
+	if( left_hair_lower_bound < chin_line_bound && left_hair_lower_bound >= hair_upper_boundary_row + (chin_line_bound - hair_upper_boundary_row)*(2.0/3.0) )
 	{
-		int j=0;
-		while(j < detected_edges.cols)
-		{
-			if(result.at<uchar>(i,j) != 255 && detected_edges.at<uchar>(i,j) == 255)
-				result.at<uchar>(i,j) = 255;
-			
-			j++;
-		}
+		//옆머리 짧다
+		detected_side_hair = short_left_hair;
 	}
-	cv::namedWindow("Result");
-	cv::imshow("Result", result);
+	else if(left_hair_lower_bound >= chin_line_bound)
+	{
+		//옆머리 길다
+		detected_side_hair = long_left_hair;
+	}
+	else
+	{
+		//옆머리 없다(묶었다)
+		detected_side_hair = tied_hair;
+	}
+	return detected_side_hair;
+}
 
+front_hair_style judge_front_hairstyle(int front_hair_lower_bound, int hair_upper_boundary_row) 
+{
+	front_hair_style detected_front_hair;
+	//앞머리 기장 판정
+	if( front_hair_lower_bound > hair_upper_boundary_row + 2*(eye_upper_bound-hair_upper_boundary_row)/3.0 )
+	{
+		//앞머리 길다
+		detected_front_hair = long_front_hair;
+	}
+	else if(
+		front_hair_lower_bound <= hair_upper_boundary_row + 2*(eye_upper_bound-hair_upper_boundary_row)/3.0
+		&& front_hair_lower_bound > hair_upper_boundary_row + (eye_upper_bound-hair_upper_boundary_row)/2.0
+		)
+	{
+		//앞머리 짧다
+		detected_front_hair = short_front_hair;
+	}
+	else
+	{
+		//앞머리 없다
+		detected_front_hair =  no_front_hair;
+	}
+	return detected_front_hair;
 }
 
 int main()
@@ -372,8 +350,69 @@ int main()
 
 	eye_upper_bound = (face_rect->x) + (eye_rect->x);
 	
-	hair_style_detection(face_rect->x, face_rect->y + (0.1)*(face_rect->height), face_rect->width, face_rect->height);//머리 모양 찾기
-		
+	grabcut_face(face_rect->x, face_rect->y + (0.1)*(face_rect->height), face_rect->width, face_rect->height);//머리 모양 찾기
+	
+	//앞머리 라인
+	int front_hair_lower_bound = get_front_hair_lower_bound();
+
+	//윗머리 끝 라인
+	int hair_upper_boundary_row = get_head_upper_bound();
+
+	//턱 경계 찾아야 함
+	int chin_line_bound = get_chin_line_bound(front_hair_lower_bound);
+
+
+	//옆머리 아랫쪽 경계를 찾아야 함
+	//왼쪽(당사자의 오른쪽) 옆머리의 두께를 위에서부터 내려가며 측정해나가며 0이 되는 순간 그곳의 row, column 좌표를 기록한다
+	int left_hair_lower_bound=hair_upper_boundary_row + (chin_line_bound - hair_upper_boundary_row)*(1.0/2.0) - 1;
+	while(left_hair_lower_bound < chin_line_bound)
+	{
+		//우선 result의 col 좌표를 찾아야함
+		int face_left_boundary=0;
+		while(face_left_boundary < grabbed_face.cols)
+		{
+			if(grabbed_face.at<uchar>(left_hair_lower_bound,face_left_boundary) == 255)
+			{
+				break;
+			}
+			else
+			{
+				face_left_boundary++;
+			}
+		}
+		//찾은 col 왼쪽 경계에서부터 detected_edges에 있는 옆 경계까지의 거리를 측정해야 함
+		int hair_left_boundary = face_left_boundary-2;
+		while(hair_left_boundary>0)
+		{
+			if(detected_edges.at<uchar>(left_hair_lower_bound,hair_left_boundary) == 255)
+			{
+				break;
+			}
+			else
+			{
+				hair_left_boundary--;
+			}
+		}
+		int left_hair_width = face_left_boundary - hair_left_boundary;
+		if(left_hair_width <= 2)
+		{
+			break;
+		}
+		else
+		{
+			left_hair_lower_bound++;
+		}
+	}
+
+
+	side_hair_style detected_side_hair = judge_side_hairstyle(left_hair_lower_bound, chin_line_bound, hair_upper_boundary_row);
+
+	front_hair_style detected_front_hair = judge_front_hairstyle(front_hair_lower_bound, hair_upper_boundary_row);
+
+	show_recommended_hairstyle(detected_front_hair, detected_side_hair);
+
+	show_detected_edges();
+
 	cvShowImage("haar example (exit = esc)",frame);
 	cvWaitKey(0);
 
