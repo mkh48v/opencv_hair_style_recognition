@@ -60,7 +60,7 @@ int get_left_front_hair_lower_bound(int head_upper_bound, int left_eye_right_bou
 {
 	int front_left_hair_lower_bound = head_upper_bound + (4*(eye_upper_bound-head_upper_bound)/5.0);
 
-	while(front_left_hair_lower_bound > head_upper_bound + (eye_upper_bound-head_upper_bound)/4.0)
+	while(front_left_hair_lower_bound > head_upper_bound + (eye_upper_bound-head_upper_bound)/4.0 + 5)
 	{
 		if(detected_edges.at<uchar>( front_left_hair_lower_bound, left_eye_right_bound ) == 255)
 		{
@@ -72,7 +72,7 @@ int get_left_front_hair_lower_bound(int head_upper_bound, int left_eye_right_bou
 		}
 	}
 
-	if(front_left_hair_lower_bound <=  head_upper_bound + (eye_upper_bound-head_upper_bound)/4.0)
+	if(front_left_hair_lower_bound <=  head_upper_bound + (eye_upper_bound-head_upper_bound)/4.0 + 5)
 	{
 		//앞머리가 긴거임(여기까지 오도록 경계가 높을리가 없음)
 		front_left_hair_lower_bound = head_upper_bound + (4*(eye_upper_bound-head_upper_bound)/5.0);
@@ -83,7 +83,7 @@ int get_right_front_hair_lower_bound(int head_upper_bound, int right_eye_left_bo
 {
 	int front_right_hair_lower_bound = head_upper_bound + (13*(eye_upper_bound-head_upper_bound)/15.0);
 
-	while(front_right_hair_lower_bound > head_upper_bound + (eye_upper_bound-head_upper_bound)/4.0)
+	while(front_right_hair_lower_bound > head_upper_bound + (eye_upper_bound-head_upper_bound)/4.0 + 5)
 	{
 		if(detected_edges.at<uchar>( front_right_hair_lower_bound, right_eye_left_bound ) == 255)
 		{
@@ -95,7 +95,7 @@ int get_right_front_hair_lower_bound(int head_upper_bound, int right_eye_left_bo
 		}
 	}
 
-	if(front_right_hair_lower_bound <=  head_upper_bound + (eye_upper_bound-head_upper_bound)/4.0)
+	if(front_right_hair_lower_bound <= head_upper_bound + (eye_upper_bound-head_upper_bound)/4.0 + 5)
 	{
 		//앞머리가 긴거임(여기까지 오도록 경계가 높을리가 없음)
 		front_right_hair_lower_bound = head_upper_bound + (13*(eye_upper_bound-head_upper_bound)/15.0);
@@ -136,7 +136,7 @@ int get_head_upper_bound()
 
 int get_chin_line_bound(CvRect* face_rect) 
 {
-	int chin_line_bound = (face_rect->y + face_rect->height + 7);
+	int chin_line_bound = (face_rect->y + face_rect->height + 1);
 
 	while( chin_line_bound < (int)(face_rect->y + face_rect->height * (5/4.0)) )
 	{
@@ -151,10 +151,102 @@ int get_chin_line_bound(CvRect* face_rect)
 	}
 	if( chin_line_bound >= (int)(face_rect->y + face_rect->height * (5/4.0)) )
 	{
-		chin_line_bound = (face_rect->y + face_rect->height + 7);
+		chin_line_bound = (face_rect->y + face_rect->height + 1);
 	}
 	return chin_line_bound;
 }
+
+
+
+int get_left_hair_lower_bound(int left_hair_lower_bound, int chin_line_bound, int face_left_boundary) 
+{
+	while(left_hair_lower_bound < chin_line_bound)
+	{
+		while(face_left_boundary > 0)
+		{
+			if(detected_edges.at<uchar>(left_hair_lower_bound,face_left_boundary) == 255)
+			{
+				break;
+			}
+			else
+			{
+				face_left_boundary--;
+			}
+		}
+		if(face_left_boundary == 0)
+		{
+			left_hair_lower_bound++;
+			continue;
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	int hair_left_boundary;
+	while(left_hair_lower_bound < chin_line_bound)
+	{
+		hair_left_boundary = face_left_boundary-2;
+		while(hair_left_boundary>0)
+		{
+			if(detected_edges.at<uchar>(left_hair_lower_bound,hair_left_boundary) == 255)
+			{
+				break;
+			}
+			else
+			{
+				hair_left_boundary--;
+			}
+		}
+		if(hair_left_boundary == 0)
+		{
+			left_hair_lower_bound++;
+			continue;
+		}
+
+		int left_hair_width = face_left_boundary - hair_left_boundary;
+		if(left_hair_width < 2)
+		{
+			break;
+		}
+		else
+		{
+			left_hair_lower_bound++;
+			hair_left_boundary += 2;
+			face_left_boundary = hair_left_boundary + 1;
+			while(face_left_boundary < detected_edges.cols)
+			{
+				if(detected_edges.at<uchar>(left_hair_lower_bound,face_left_boundary) == 255)
+				{
+					break;
+				}
+				else
+				{
+					face_left_boundary++;
+				}
+			}
+			if(face_left_boundary == detected_edges.cols)
+			{
+				left_hair_lower_bound++;
+				continue;
+			}
+
+			int left_hair_width = face_left_boundary - hair_left_boundary;
+			if(left_hair_width < 2)
+			{
+				break;
+			}
+			else
+			{
+				left_hair_lower_bound++;
+			}
+		}
+	}
+	return left_hair_lower_bound;
+}
+
+
 
 void show_recommended_hairstyle( front_hair_style detected_front_hair, side_hair_style detected_side_hair ) 
 {
@@ -327,61 +419,15 @@ int main()
 	//앞머리 라인
 	int front_hair_lower_bound = get_left_front_hair_lower_bound(hair_upper_boundary_row, face_rect->x + left_eye_rect->x + left_eye_rect->width);
 
-
 	//회사에서 부수적으로 요구하는 정보
 	int front_hair_left_lower_bound = get_left_front_hair_lower_bound(hair_upper_boundary_row, face_rect->x + left_eye_rect->x + left_eye_rect->width);
 	int front_hair_right_lower_bound = get_right_front_hair_lower_bound(hair_upper_boundary_row, face_rect->x + (int)(face_rect->width / 2.0) + right_eye_rect->x);
 
-
-	//턱 경계 찾아야 함
 	int chin_line_bound = get_chin_line_bound(face_rect);
 
 
 
-	//옆머리 아랫쪽 경계를 찾아야 함
-	//왼쪽(당사자의 오른쪽) 옆머리의 두께를 위에서부터 내려가며 측정해나가며 0이 되는 순간 그곳의 row, column 좌표를 기록한다
-	int left_hair_lower_bound = hair_upper_boundary_row + (chin_line_bound - hair_upper_boundary_row)*(4.0/5.0) - 1;
-	int face_left_boundary=face_rect->x + left_eye_rect->x + (left_eye_rect->width/2.0);
-	while(left_hair_lower_bound < chin_line_bound)
-	{
-		if(detected_edges.at<uchar>(left_hair_lower_bound,face_left_boundary) == 255)
-		{
-			face_left_boundary+=5;
-		}
-		while(face_left_boundary < face_rect->x)
-		{
-			if(detected_edges.at<uchar>(left_hair_lower_bound,face_left_boundary) == 255)
-			{
-				break;
-			}
-			else
-			{
-				face_left_boundary--;
-			}
-		}
-		//찾은 col 왼쪽 경계에서부터 detected_edges에 있는 옆 경계까지의 거리를 측정해야 함
-		int hair_left_boundary = face_left_boundary-2;
-		while(hair_left_boundary>0)
-		{
-			if(detected_edges.at<uchar>(left_hair_lower_bound,hair_left_boundary) == 255)
-			{
-				break;
-			}
-			else
-			{
-				hair_left_boundary--;
-			}
-		}
-		int left_hair_width = face_left_boundary - hair_left_boundary;
-		if(left_hair_width <= 2)
-		{
-			break;
-		}
-		else
-		{
-			left_hair_lower_bound++;
-		}
-	}
+	int left_hair_lower_bound = get_left_hair_lower_bound((int) ( (chin_line_bound - eye_upper_bound)*(4.0/5.0) - 1 ), chin_line_bound, face_rect->x + left_eye_rect->x + (left_eye_rect->width/2.0));
 
 
 
