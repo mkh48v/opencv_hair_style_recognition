@@ -1,4 +1,4 @@
-﻿빌드 시작: 2014-05-07 오후 2:43:21
+﻿빌드 시작: 2014-05-13 오후 7:59:50
      1>2 노드의 "C:\Users\mgh48v\Documents\Visual Studio 2010\Projects\hello-world\opencv\opencv.vcxproj" 프로젝트(build 대상)입니다.
      1>InitializeBuildStatus:
          "AlwaysCreate"이(가) 지정되었기 때문에 "Debug\opencv.unsuccessfulbuild"을(를) 만들고 있습니다.
@@ -11,10 +11,17 @@
                  c:\program files (x86)\microsoft visual studio 10.0\vc\include\stdio.h(234) : 'fopen' 선언을 참조하십시오.
      1>c:\opencv\build\include\opencv2\flann\dist.h : warning C4819: 현재 코드 페이지(949)에서 표시할 수 없는 문자가 파일에 들어 있습니다. 데이터가 손실되지 않게 하려면 해당 파일을 유니코드 형식으로 저장하십시오.
      1>c:\opencv\build\include\opencv2\flann\dist.h : warning C4819: 현재 코드 페이지(949)에서 표시할 수 없는 문자가 파일에 들어 있습니다. 데이터가 손실되지 않게 하려면 해당 파일을 유니코드 형식으로 저장하십시오.
-     1>c:\users\mgh48v\documents\visual studio 2010\projects\hello-world\opencv\hello.cpp(335): warning C4244: '=' : 'double'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
-     1>c:\users\mgh48v\documents\visual studio 2010\projects\hello-world\opencv\hello.cpp(336): warning C4244: '=' : 'double'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
-     1>c:\users\mgh48v\documents\visual studio 2010\projects\hello-world\opencv\hello.cpp(353): warning C4244: '인수' : 'double'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
-     1>c:\users\mgh48v\documents\visual studio 2010\projects\hello-world\opencv\hello.cpp(367): warning C4244: '초기화 중' : 'double'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>c:\users\mgh48v\documents\visual studio 2010\projects\hello-world\opencv\hello.cpp(62): warning C4244: '초기화 중' : 'double'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>c:\users\mgh48v\documents\visual studio 2010\projects\hello-world\opencv\hello.cpp(79): warning C4244: '=' : 'double'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>c:\users\mgh48v\documents\visual studio 2010\projects\hello-world\opencv\hello.cpp(85): warning C4244: '초기화 중' : 'double'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>c:\users\mgh48v\documents\visual studio 2010\projects\hello-world\opencv\hello.cpp(102): warning C4244: '=' : 'double'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>c:\users\mgh48v\documents\visual studio 2010\projects\hello-world\opencv\hello.cpp(307): warning C4244: '=' : 'double'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>c:\users\mgh48v\documents\visual studio 2010\projects\hello-world\opencv\hello.cpp(308): warning C4244: '=' : 'double'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>c:\users\mgh48v\documents\visual studio 2010\projects\hello-world\opencv\hello.cpp(311): warning C4244: '=' : 'double'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>c:\users\mgh48v\documents\visual studio 2010\projects\hello-world\opencv\hello.cpp(313): warning C4244: '=' : 'double'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>c:\users\mgh48v\documents\visual studio 2010\projects\hello-world\opencv\hello.cpp(314): warning C4244: '=' : 'double'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>c:\users\mgh48v\documents\visual studio 2010\projects\hello-world\opencv\hello.cpp(364): warning C4244: '초기화 중' : 'double'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+     1>cl : 명령줄 warning D9028: 최소 다시 빌드에 실패했습니다. 정상 빌드로 되돌립니다.
        Link:
          c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\mgh48v\Documents\Visual Studio 2010\Projects\hello-world\Debug\opencv.exe" /NOLOGO /LIBPATH:C:\opencv\build\x86\vc10\lib opencv_calib3d248d.lib opencv_contrib248d.lib opencv_core248d.lib opencv_features2d248d.lib opencv_flann248d.lib opencv_gpu248d.lib opencv_highgui248d.lib opencv_imgproc248d.lib opencv_legacy248d.lib opencv_ml248d.lib opencv_nonfree248d.lib opencv_objdetect248d.lib opencv_ocl248d.lib opencv_photo248d.lib opencv_stitching248d.lib opencv_superres248d.lib opencv_ts248d.lib opencv_video248d.lib opencv_videostab248d.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Debug\opencv.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"C:\Users\mgh48v\Documents\Visual Studio 2010\Projects\hello-world\Debug\opencv.pdb" /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\mgh48v\Documents\Visual Studio 2010\Projects\hello-world\Debug\opencv.lib" /MACHINE:X86 Debug\hello.obj
          LINK : C:\Users\mgh48v\Documents\Visual Studio 2010\Projects\hello-world\Debug\opencv.exe을(를) 찾을 수 없거나 마지막 증분 링크에 의해 빌드되지 않았습니다. 전체 링크를 수행하고 있습니다.
@@ -28,4 +35,4 @@
 
 빌드했습니다.
 
-경과 시간: 00:00:06.13
+경과 시간: 00:00:04.72
