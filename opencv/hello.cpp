@@ -25,7 +25,6 @@ enum front_hair_style
 };
 enum side_hair_style
 {
-	tied_hair,
 	short_left_hair,
 	long_left_hair
 };
@@ -35,7 +34,7 @@ void CannyThreshold(int, void*)
 	/// Reduce noise with a kernel 3x3
 	blur( src_gray, detected_edges, Size(3,3) );
 
-	int threshold_value = 50;
+	int threshold_value = 60;
 	Canny( detected_edges, detected_edges, threshold_value, threshold_value*ratio, kernel_size );
 
 	cv::namedWindow("Result");
@@ -172,12 +171,6 @@ void show_recommended_hairstyle( front_hair_style detected_front_hair, side_hair
 		cv::namedWindow("recommended hairstyle");
 		cv::imshow("recommended hairstyle",hairtyle_image);
 	}
-	else if(detected_front_hair == long_front_hair && detected_side_hair == tied_hair)
-	{
-		cv::Mat hairtyle_image= cv::imread("frontlong_sideshort.png");
-		cv::namedWindow("recommended hairstyle");
-		cv::imshow("recommended hairstyle",hairtyle_image);
-	}
 
 	//앞머리 짧은 여자
 	else if(detected_front_hair == short_front_hair && detected_side_hair == long_left_hair)
@@ -189,12 +182,6 @@ void show_recommended_hairstyle( front_hair_style detected_front_hair, side_hair
 	else if(detected_front_hair == short_front_hair && detected_side_hair == short_left_hair)
 	{
 		cv::Mat hairtyle_image= cv::imread("frontmedium_sidemedium.png");
-		cv::namedWindow("recommended hairstyle");
-		cv::imshow("recommended hairstyle",hairtyle_image);
-	}
-	else if(detected_front_hair == short_front_hair && detected_side_hair == tied_hair)
-	{
-		cv::Mat hairtyle_image= cv::imread("frontmedium_sideshort.png");
 		cv::namedWindow("recommended hairstyle");
 		cv::imshow("recommended hairstyle",hairtyle_image);
 	}
@@ -212,19 +199,13 @@ void show_recommended_hairstyle( front_hair_style detected_front_hair, side_hair
 		cv::namedWindow("recommended hairstyle");
 		cv::imshow("recommended hairstyle",hairtyle_image);
 	}
-	else if(detected_front_hair == no_front_hair && detected_side_hair == tied_hair)
-	{
-		cv::Mat hairtyle_image= cv::imread("frontshort_sideshort.png");
-		cv::namedWindow("recommended hairstyle");
-		cv::imshow("recommended hairstyle",hairtyle_image);
-	}
 }
 
 side_hair_style judge_side_hairstyle( int left_hair_lower_bound, int chin_line_bound, int hair_upper_boundary_row) 
 {
 	side_hair_style detected_side_hair;
 	//옆머리 기장 판정
-	if( left_hair_lower_bound < chin_line_bound && left_hair_lower_bound >= hair_upper_boundary_row + (chin_line_bound - hair_upper_boundary_row)*(2.0/3.0) )
+	if( left_hair_lower_bound < chin_line_bound && left_hair_lower_bound >= hair_upper_boundary_row + (chin_line_bound - hair_upper_boundary_row)*(4.0/5.0) )
 	{
 		//옆머리 짧다
 		detected_side_hair = short_left_hair;
@@ -236,8 +217,7 @@ side_hair_style judge_side_hairstyle( int left_hair_lower_bound, int chin_line_b
 	}
 	else
 	{
-		//옆머리 없다(묶었다)
-		detected_side_hair = tied_hair;
+		detected_side_hair = short_left_hair;
 	}
 	return detected_side_hair;
 }
@@ -360,7 +340,7 @@ int main()
 
 	//옆머리 아랫쪽 경계를 찾아야 함
 	//왼쪽(당사자의 오른쪽) 옆머리의 두께를 위에서부터 내려가며 측정해나가며 0이 되는 순간 그곳의 row, column 좌표를 기록한다
-	int left_hair_lower_bound = face_rect->y + left_eye_rect->y + left_eye_rect->height;
+	int left_hair_lower_bound = hair_upper_boundary_row + (chin_line_bound - hair_upper_boundary_row)*(4.0/5.0) - 1;
 	int face_left_boundary=face_rect->x + left_eye_rect->x + (left_eye_rect->width/2.0);
 	while(left_hair_lower_bound < chin_line_bound)
 	{
