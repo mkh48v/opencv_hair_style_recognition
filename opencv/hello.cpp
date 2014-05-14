@@ -60,7 +60,8 @@ int get_left_front_hair_lower_bound(int head_upper_bound, int left_eye_right_bou
 {
 	int front_left_hair_lower_bound = head_upper_bound + (4*(eye_upper_bound-head_upper_bound)/5.0);
 
-	while(front_left_hair_lower_bound > head_upper_bound + (eye_upper_bound-head_upper_bound)/4.0 + 5)
+
+	while(front_left_hair_lower_bound > head_upper_bound + (eye_upper_bound-head_upper_bound)/2.0)
 	{
 		if(detected_edges.at<uchar>( front_left_hair_lower_bound, left_eye_right_bound ) == 255)
 		{
@@ -72,18 +73,20 @@ int get_left_front_hair_lower_bound(int head_upper_bound, int left_eye_right_bou
 		}
 	}
 
-	if(front_left_hair_lower_bound <=  head_upper_bound + (eye_upper_bound-head_upper_bound)/4.0 + 5)
+
+	if(front_left_hair_lower_bound <=  head_upper_bound + (eye_upper_bound-head_upper_bound)/2.0)
 	{
 		//앞머리가 긴거임(여기까지 오도록 경계가 높을리가 없음)
 		front_left_hair_lower_bound = head_upper_bound + (4*(eye_upper_bound-head_upper_bound)/5.0);
 	}
 	return front_left_hair_lower_bound;
 }
+
 int get_right_front_hair_lower_bound(int head_upper_bound, int right_eye_left_bound) 
 {
 	int front_right_hair_lower_bound = head_upper_bound + (13*(eye_upper_bound-head_upper_bound)/15.0);
 
-	while(front_right_hair_lower_bound > head_upper_bound + (eye_upper_bound-head_upper_bound)/4.0 + 5)
+	while(front_right_hair_lower_bound > head_upper_bound + (eye_upper_bound-head_upper_bound)/2.0 + 5)
 	{
 		if(detected_edges.at<uchar>( front_right_hair_lower_bound, right_eye_left_bound ) == 255)
 		{
@@ -95,7 +98,7 @@ int get_right_front_hair_lower_bound(int head_upper_bound, int right_eye_left_bo
 		}
 	}
 
-	if(front_right_hair_lower_bound <= head_upper_bound + (eye_upper_bound-head_upper_bound)/4.0 + 5)
+	if(front_right_hair_lower_bound <= head_upper_bound + (eye_upper_bound-head_upper_bound)/2.0 + 5)
 	{
 		//앞머리가 긴거임(여기까지 오도록 경계가 높을리가 없음)
 		front_right_hair_lower_bound = head_upper_bound + (13*(eye_upper_bound-head_upper_bound)/15.0);
@@ -158,11 +161,13 @@ int get_chin_line_bound(CvRect* face_rect)
 
 
 
-int get_left_hair_lower_bound(int left_hair_lower_bound, int chin_line_bound, int face_left_boundary) 
+int get_left_hair_lower_bound(int left_hair_lower_bound, int chin_line_bound, int face_left_boundary, int detection_bound) 
 {
+	//초기화하는 부분
+	int face_left_boundary_save = face_left_boundary;
 	while(left_hair_lower_bound < chin_line_bound)
 	{
-		while(face_left_boundary > 0)
+		while(face_left_boundary > detection_bound)
 		{
 			if(detected_edges.at<uchar>(left_hair_lower_bound,face_left_boundary) == 255)
 			{
@@ -173,8 +178,9 @@ int get_left_hair_lower_bound(int left_hair_lower_bound, int chin_line_bound, in
 				face_left_boundary--;
 			}
 		}
-		if(face_left_boundary == 0)
+		if(face_left_boundary == detection_bound)
 		{
+			face_left_boundary = face_left_boundary_save;
 			left_hair_lower_bound++;
 			continue;
 		}
@@ -183,12 +189,16 @@ int get_left_hair_lower_bound(int left_hair_lower_bound, int chin_line_bound, in
 			break;
 		}
 	}
+	int hair_left_boundary = face_left_boundary - 7;
+	
 
-	int hair_left_boundary;
+
+	//왼쪽 머리 아랫쪽 경계 찾기
+	int hair_left_bound_save = hair_left_boundary;
 	while(left_hair_lower_bound < chin_line_bound)
 	{
-		hair_left_boundary = face_left_boundary-2;
-		while(hair_left_boundary>0)
+		//머리 왼쪽 경계 찾는 부분
+		while(hair_left_boundary>detection_bound)
 		{
 			if(detected_edges.at<uchar>(left_hair_lower_bound,hair_left_boundary) == 255)
 			{
@@ -199,21 +209,28 @@ int get_left_hair_lower_bound(int left_hair_lower_bound, int chin_line_bound, in
 				hair_left_boundary--;
 			}
 		}
-		if(hair_left_boundary == 0)
+		if(hair_left_boundary == detection_bound)
 		{
+			hair_left_boundary = hair_left_bound_save;
 			left_hair_lower_bound++;
 			continue;
 		}
+		else
+		{
+			hair_left_bound_save = hair_left_boundary;
+		}
+
+
 
 		int left_hair_width = face_left_boundary - hair_left_boundary;
 		if(left_hair_width < 2)
 		{
 			break;
 		}
-		else
+		else//왼쪽머리 오른쪽 경계 찾는 부분
 		{
 			left_hair_lower_bound++;
-			hair_left_boundary += 2;
+			face_left_boundary_save = face_left_boundary;
 			face_left_boundary = hair_left_boundary + 1;
 			while(face_left_boundary < detected_edges.cols)
 			{
@@ -226,8 +243,11 @@ int get_left_hair_lower_bound(int left_hair_lower_bound, int chin_line_bound, in
 					face_left_boundary++;
 				}
 			}
+
 			if(face_left_boundary == detected_edges.cols)
 			{
+				face_left_boundary = face_left_boundary_save;
+				hair_left_boundary = face_left_boundary - 1;
 				left_hair_lower_bound++;
 				continue;
 			}
@@ -239,10 +259,14 @@ int get_left_hair_lower_bound(int left_hair_lower_bound, int chin_line_bound, in
 			}
 			else
 			{
-				left_hair_lower_bound++;
+				hair_left_boundary = face_left_boundary-1;
 			}
 		}
 	}
+	//루프 끝
+
+
+
 	return left_hair_lower_bound;
 }
 
@@ -427,7 +451,7 @@ int main()
 
 
 
-	int left_hair_lower_bound = get_left_hair_lower_bound((int) ( (chin_line_bound - eye_upper_bound)*(4.0/5.0) - 1 ), chin_line_bound, face_rect->x + left_eye_rect->x + (left_eye_rect->width/2.0));
+	int left_hair_lower_bound = get_left_hair_lower_bound((int) ( eye_upper_bound + (chin_line_bound - eye_upper_bound)*(3.0/5.0) - 1 ), chin_line_bound, face_rect->x + left_eye_rect->x + (left_eye_rect->width/2.0), face_rect->x+3);
 
 
 
