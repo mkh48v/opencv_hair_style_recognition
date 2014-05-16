@@ -38,15 +38,15 @@ void CannyThreshold(int, void*)
 	int threshold_value = 60;
 	Canny( detected_edges, detected_edges, threshold_value, threshold_value*ratio, kernel_size );
 
-	cv::namedWindow("Result");
-	cv::imshow("Result", detected_edges);
+	//cv::namedWindow("Result");
+	//cv::imshow("Result", detected_edges);
 
 }
 
-void edge_detection()
+void edge_detection(char* argv)
 {
 	/// Load an image
-	src = imread("hello_world.jpg");
+	src = imread(argv);
 	
 	/// Convert the image to grayscale
 	cvtColor( src, src_gray, CV_BGR2GRAY );
@@ -379,7 +379,7 @@ int main(int argc, char* argv[])
 
 
 	//이미지를 로드
-	IplImage *pic = cvLoadImage("hello_world.jpg",CV_LOAD_IMAGE_COLOR);
+	IplImage *pic = cvLoadImage(argv[1],CV_LOAD_IMAGE_COLOR);
 	if(pic == NULL)
 	{
 		printf("사진 파일을 찾을 수 없습니다. Enter키를 누르시면 종료합니다.\n");
@@ -394,7 +394,7 @@ int main(int argc, char* argv[])
 
 
 	//edge detection 먼저
-	edge_detection();
+	edge_detection(argv[1]);
 
 	//이 아래는 얼굴 인식
 	
@@ -416,7 +416,7 @@ int main(int argc, char* argv[])
 	face_rect = (CvRect*) cvGetSeqElem(detected_face, 0);
 
 	//얼굴 이미지에서 눈을 찾아야 할 것 같음
-	cv::Mat face_mat= cv::imread("hello_world.jpg");
+	cv::Mat face_mat= cv::imread(argv[1]);
 	// Transform it into the C++ cv::Mat format
 	cv::Mat image(face_mat); 
 
@@ -475,9 +475,9 @@ int main(int argc, char* argv[])
 
 
 	//eye_rect의 좌표를 기억해놓아서 앞머리의 상대적 길이를 판정할 때 도움을 받아야 함 
-	cvRectangle(pic, cvPoint( face_rect->x + left_eye_rect->x, (face_rect->y)+(left_eye_rect->y) ), cvPoint(face_rect->x + left_eye_rect->x+left_eye_rect->width, (face_rect->y)+(left_eye_rect->y)+left_eye_rect->height), cvScalar(0,255,0), 3, CV_AA, 0);
+	//cvRectangle(pic, cvPoint( face_rect->x + left_eye_rect->x, (face_rect->y)+(left_eye_rect->y) ), cvPoint(face_rect->x + left_eye_rect->x+left_eye_rect->width, (face_rect->y)+(left_eye_rect->y)+left_eye_rect->height), cvScalar(0,255,0), 3, CV_AA, 0);
 
-	cvRectangle(pic, cvPoint(face_rect->x, face_rect->y), cvPoint(face_rect->x+face_rect->width, face_rect->y+face_rect->height), cvScalar(0,255,0), 3, CV_AA, 0);
+	//cvRectangle(pic, cvPoint(face_rect->x, face_rect->y), cvPoint(face_rect->x+face_rect->width, face_rect->y+face_rect->height), cvScalar(0,255,0), 3, CV_AA, 0);
 
 
 
@@ -507,10 +507,10 @@ int main(int argc, char* argv[])
 
 	show_recommended_hairstyle(detected_front_hair, detected_side_hair);
 
-	cvShowImage("haar example (exit = esc)",pic);
+	cvShowImage("original image (exit = esc)",pic);
 	cvWaitKey(0);
 
-	cvDestroyWindow("haar example (exit = esc)");
+	cvDestroyWindow("original image (exit = esc)");
 
 	return 0;
 }
