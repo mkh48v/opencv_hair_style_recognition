@@ -1,9 +1,10 @@
-#include <iostream>
 #include <opencv/cv.h>
+#include <iostream>
 #include <opencv2/highgui/highgui.hpp>
 #include "opencv2/imgproc/imgproc.hpp"
 #include <stdlib.h>
 #include <stdio.h>
+#include <string>
 
 using namespace cv;
 
@@ -61,7 +62,7 @@ int get_left_front_hair_lower_bound(int head_upper_bound, int left_eye_right_bou
 	int front_left_hair_lower_bound = head_upper_bound + (4*(eye_upper_bound-head_upper_bound)/5.0);
 
 
-	while(front_left_hair_lower_bound > head_upper_bound + (eye_upper_bound-head_upper_bound)/2.0)
+	while(front_left_hair_lower_bound > head_upper_bound + (eye_upper_bound-head_upper_bound)/3.0)
 	{
 		if(detected_edges.at<uchar>( front_left_hair_lower_bound, left_eye_right_bound ) == 255)
 		{
@@ -74,7 +75,7 @@ int get_left_front_hair_lower_bound(int head_upper_bound, int left_eye_right_bou
 	}
 
 
-	if(front_left_hair_lower_bound <=  head_upper_bound + (eye_upper_bound-head_upper_bound)/2.0)
+	if(front_left_hair_lower_bound <=  head_upper_bound + (eye_upper_bound-head_upper_bound)/3.0)
 	{
 		//앞머리가 긴거임(여기까지 오도록 경계가 높을리가 없음)
 		front_left_hair_lower_bound = head_upper_bound + (4*(eye_upper_bound-head_upper_bound)/5.0);
@@ -229,7 +230,7 @@ int get_left_hair_lower_bound(int left_hair_lower_bound, int chin_line_bound, in
 		}
 		else//왼쪽머리 오른쪽 경계 찾는 부분
 		{
-			left_hair_lower_bound++;
+			left_hair_lower_bound++;//아랫 픽셀 라인 체크 시작
 			face_left_boundary_save = face_left_boundary;
 			face_left_boundary = hair_left_boundary + 1;
 			while(face_left_boundary < detected_edges.cols)
@@ -363,30 +364,53 @@ front_hair_style judge_front_hairstyle(int front_hair_lower_bound, int hair_uppe
 	return detected_front_hair;
 }
 
-int main()
+int main(int argc, char* argv[])
 {
 	const char *faceclassifer = "haarcascade_frontalface_alt.xml";
 	CvHaarClassifierCascade* facecascade = 0;
 	facecascade = (CvHaarClassifierCascade*) cvLoad(faceclassifer, 0, 0, 0 );
 
-	const char *eyeclassifer = "C:\\opencv\\sources\\data\\haarcascades\\haarcascade_eye.xml";
+	const char *eyeclassifer = "haarcascade_eye.xml";
 	CvHaarClassifierCascade* eyecascade = 0;
 	eyecascade = (CvHaarClassifierCascade*) cvLoad(eyeclassifer, 0, 0, 0 );
 
 	CvMemStorage* storage = 0;
 	storage = cvCreateMemStorage(0);
 
+
+	//이미지를 로드
+	IplImage *pic = cvLoadImage("hello_world.jpg",CV_LOAD_IMAGE_COLOR);
+	if(pic == NULL)
+	{
+		printf("사진 파일을 찾을 수 없습니다. Enter키를 누르시면 종료합니다.\n");
+		while(1)
+		{
+			if (std::cin.get() == '\n')
+			{
+				return 0;
+			}
+		}
+	}
+
+
 	//edge detection 먼저
 	edge_detection();
 
 	//이 아래는 얼굴 인식
 	
-	//이미지를 로드
-	IplImage *pic = cvLoadImage("hello_world.jpg",CV_LOAD_IMAGE_COLOR);
-	
 	//얼굴 검출
 	CvSeq *detected_face = cvHaarDetectObjects(pic, facecascade, storage, 1.4 , 1, 0);
-
+	if(detected_face == NULL)
+	{
+		printf("사진 파일에서 얼굴을 찾을 수 없습니다. Enter키를 누르시면 종료합니다.\n");
+		while(1)
+		{
+			if (std::cin.get() == '\n')
+			{
+				return 0;
+			}
+		}
+	}
 	//검출된 얼굴 Rectangle 받아오기(얼굴은 하나만 입력되고 인식됐다고 가정)
 	CvRect *face_rect = 0;
 	face_rect = (CvRect*) cvGetSeqElem(detected_face, 0);
@@ -418,7 +442,29 @@ int main()
 
 	//face_iplimage에서 눈깔을 찾는다
 	CvSeq* left_eye = cvHaarDetectObjects(left_face_iplimage, eyecascade, storage, 1.4 , 1, 0);
+	if(left_eye == NULL)
+	{
+		printf("사진에서 왼쪽 눈을 찾을 수 없습니다. Enter키를 누르시면 종료합니다.\n");
+		while(1)
+		{
+			if (std::cin.get() == '\n')
+			{
+				return 0;
+			}
+		}
+	}
 	CvSeq* right_eye = cvHaarDetectObjects(right_face_iplimage, eyecascade, storage, 1.4 , 1, 0);
+	if(right_eye == NULL)
+	{
+		printf("사진에서 오른쪽 눈을 찾을 수 없습니다. Enter키를 누르시면 종료합니다.\n");
+		while(1)
+		{
+			if (std::cin.get() == '\n')
+			{
+				return 0;
+			}
+		}
+	}
 
 	//검출된 눈깔 Rectangle 받아오기(눈알은 하나만 입력되고 인식됐다고 가정)
 	CvRect *left_eye_rect = 0;
