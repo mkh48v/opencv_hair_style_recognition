@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string>
+#include <vector>
 
 using namespace cv;
 
@@ -131,26 +132,36 @@ int mid_front_hair_analysis(cv::Mat gray_scale_mat, int vertical_standard_line, 
 	return count;
 }
 
-int get_chin_line_bound(CvRect* face_rect) 
+int get_chin_line_bound(CvRect* face_rect, cv::Mat gray_scale_mat) 
 {
 	int chin_line_bound = (face_rect->y + face_rect->height + 1);
-
-	while( chin_line_bound < (int)(face_rect->y + face_rect->height * (5/4.0)) )
+	
+	int count = 0;
+	int color_sum = 0;
+	double color_mean;
+	while(count < 3)
 	{
-		if(detected_edges.at<uchar>( chin_line_bound, (int)( face_rect->x + (face_rect->width/2.0) ) ) == 255)
+		color_sum += gray_scale_mat.at<uchar>( chin_line_bound + count, (int)( face_rect->x + (face_rect->width/2.0) ) );
+		count++;
+	}
+
+	color_mean = color_sum/(double)count;
+
+
+	while( chin_line_bound + count < (int)(face_rect->y + face_rect->height * (5/4.0)) )
+	{
+		if(gray_scale_mat.at<uchar>( chin_line_bound + count, (int)( face_rect->x + (face_rect->width/2.0) ) ) < color_mean - 35)
 		{
 			break;
 		}
 		else
 		{
-			chin_line_bound++;
+			color_sum += gray_scale_mat.at<uchar>( chin_line_bound + count, (int)( face_rect->x + (face_rect->width/2.0) ) );
+			count++;
+			color_mean = color_sum/(double)count;
 		}
 	}
-	if( chin_line_bound >= (int)(face_rect->y + face_rect->height * (5/4.0)) )
-	{
-		chin_line_bound = (face_rect->y + face_rect->height + 1);
-	}
-	return chin_line_bound;
+	return chin_line_bound + count;
 }
 
 
@@ -281,21 +292,7 @@ void show_recommended_hairstyle( front_hair_style detected_front_hair, side_hair
 		cv::namedWindow("recommended hairstyle");
 		cv::imshow("recommended hairstyle",hairtyle_image);
 	}
-
-	//앞머리 짧은 여자
-	else if(detected_front_hair == short_front_hair && detected_side_hair == long_left_hair)
-	{
-		cv::Mat hairtyle_image= cv::imread("frontmedium_sidelong.png");
-		cv::namedWindow("recommended hairstyle");
-		cv::imshow("recommended hairstyle",hairtyle_image);
-	}
-	else if(detected_front_hair == short_front_hair && detected_side_hair == short_left_hair)
-	{
-		cv::Mat hairtyle_image= cv::imread("frontmedium_sidemedium.png");
-		cv::namedWindow("recommended hairstyle");
-		cv::imshow("recommended hairstyle",hairtyle_image);
-	}
-
+	
 	//앞머리 없는 여자
 	else if(detected_front_hair == no_front_hair && detected_side_hair == long_left_hair)
 	{
@@ -340,14 +337,6 @@ front_hair_style judge_front_hairstyle(int front_hair_lower_bound, int hair_uppe
 	{
 		//앞머리 길다
 		detected_front_hair = long_front_hair;
-	}
-	else if(
-		front_hair_lower_bound <= hair_upper_boundary_row + 2*(eye_upper_bound-hair_upper_boundary_row)/3.0
-		&& front_hair_lower_bound > hair_upper_boundary_row + (eye_upper_bound-hair_upper_boundary_row)/2.0
-		)
-	{
-		//앞머리 짧다
-		detected_front_hair = short_front_hair;
 	}
 	else
 	{
@@ -488,21 +477,18 @@ int main(int argc, char* argv[])
 	
 	//스펙트럼을 이용한 앞머리 경계 판정
 	int spectrum_front_hair_lower_bound = mid_front_hair_analysis(pic_gray, face_rect->x + (int)(face_rect->width / 2.0), eye_upper_bound, &gray_scale_hair_color, &hair_upper_boundary_row);
+	
+
 
 	//회사에서 부수적으로 요구하는 정보
 	//int front_hair_left_lower_bound = get_left_front_hair_lower_bound(hair_upper_boundary_row, face_rect->x + left_eye_rect->x + left_eye_rect->width);
 	//int front_hair_right_lower_bound = get_right_front_hair_lower_bound(hair_upper_boundary_row, face_rect->x + (int)(face_rect->width / 2.0) + right_eye_rect->x);
 
 
+
+	int chin_line_bound = get_chin_line_bound(face_rect, pic_gray);
 	
-
-	int chin_line_bound = get_chin_line_bound(face_rect);
-
-
-
 	int left_hair_lower_bound = get_left_hair_lower_bound((int) ( eye_upper_bound + (chin_line_bound - eye_upper_bound)*(3.0/5.0) - 1 ), chin_line_bound, face_rect->x + left_eye_rect->x + (left_eye_rect->width/2.0), face_rect->x+3);
-
-
 
 	side_hair_style detected_side_hair = judge_side_hairstyle(left_hair_lower_bound, chin_line_bound, hair_upper_boundary_row);
 
