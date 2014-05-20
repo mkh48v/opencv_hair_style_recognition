@@ -56,86 +56,79 @@ void edge_detection(char* argv)
 }
 
 
-
-int get_left_front_hair_lower_bound(int head_upper_bound, int left_eye_right_bound) 
+int mid_front_hair_analysis(cv::Mat gray_scale_mat, int vertical_standard_line, int horizontal_lower_bound, int* gray_scale_hair_color, int* hair_upper_bound) 
 {
-	int front_left_hair_lower_bound = head_upper_bound + (4*(eye_upper_bound-head_upper_bound)/5.0);
+	cv::namedWindow("hello");
+	cv::imshow("hello", gray_scale_mat);
 
+	int count = 0;
 
-	while(front_left_hair_lower_bound > head_upper_bound + (eye_upper_bound-head_upper_bound)/3.0)
+	//처음 3개 평균내고 시작하기
+	int firstsum = 0;
+	int secondsum = 0;
+	double firstmean;//배경 색깔로 추정
+	double secondmean;//옆머리 색깔 판정할 때 써야 함
+	
+	while(count < 3)
 	{
-		if(detected_edges.at<uchar>( front_left_hair_lower_bound, left_eye_right_bound ) == 255)
+		firstsum += gray_scale_mat.at<uchar>( count, vertical_standard_line );
+		count++;
+	}
+	firstmean = firstsum / count;
+
+	count++;
+
+	while(count < horizontal_lower_bound)
+	{
+		if(gray_scale_mat.at<uchar>( count, vertical_standard_line ) < firstmean - 75)
 		{
 			break;
 		}
 		else
 		{
-			front_left_hair_lower_bound--;
+			firstsum += gray_scale_mat.at<uchar>( count, vertical_standard_line );
+			firstmean = firstsum / (double)count;
+			count++;
 		}
 	}
-
-
-	if(front_left_hair_lower_bound <=  head_upper_bound + (eye_upper_bound-head_upper_bound)/3.0)
+	if(count == horizontal_lower_bound)
 	{
-		//앞머리가 긴거임(여기까지 오도록 경계가 높을리가 없음)
-		front_left_hair_lower_bound = head_upper_bound + (4*(eye_upper_bound-head_upper_bound)/5.0);
+		//0이 윗머리 꼭대기이고
+		//앞머리는 매우 긴 것임
+		*hair_upper_bound = 0;
+		*gray_scale_hair_color = firstmean;
+		return count;
 	}
-	return front_left_hair_lower_bound;
-}
 
-int get_right_front_hair_lower_bound(int head_upper_bound, int right_eye_left_bound) 
-{
-	int front_right_hair_lower_bound = head_upper_bound + (13*(eye_upper_bound-head_upper_bound)/15.0);
 
-	while(front_right_hair_lower_bound > head_upper_bound + (eye_upper_bound-head_upper_bound)/2.0 + 5)
+	//윗머리 시작
+	*hair_upper_bound = count;
+
+
+	secondsum = gray_scale_mat.at<uchar>( count, vertical_standard_line ) + gray_scale_mat.at<uchar>( count+1, vertical_standard_line ) + gray_scale_mat.at<uchar>( count+2, vertical_standard_line );
+	int secondcount = 3;
+	secondmean = secondsum / (double)secondcount;
+	secondcount++;
+
+	count += 3;
+	while(count < horizontal_lower_bound)
 	{
-		if(detected_edges.at<uchar>( front_right_hair_lower_bound, right_eye_left_bound ) == 255)
+		if(gray_scale_mat.at<uchar>( count, vertical_standard_line ) > secondmean + 75)
 		{
 			break;
 		}
 		else
 		{
-			front_right_hair_lower_bound--;
+			secondsum += gray_scale_mat.at<uchar>( count, vertical_standard_line );
+			secondmean = secondsum / (double)secondcount;
+			secondcount++;
+			count++;
 		}
 	}
 
-	if(front_right_hair_lower_bound <= head_upper_bound + (eye_upper_bound-head_upper_bound)/2.0 + 5)
-	{
-		//앞머리가 긴거임(여기까지 오도록 경계가 높을리가 없음)
-		front_right_hair_lower_bound = head_upper_bound + (13*(eye_upper_bound-head_upper_bound)/15.0);
-	}
-	return front_right_hair_lower_bound;
-}
-
-
-
-int get_head_upper_bound() 
-{
-	int hair_upper_boundary_row = 0;
-	int hair_upper_edge_col=0;
-	for(int i = 0; i < detected_edges.rows; i++)
-	{
-		int j=0;
-		while(j < detected_edges.cols)
-		{
-			if(detected_edges.at<uchar>(i,j) == 255)
-			{
-				//여기가 머리 윗쪽 경계
-				hair_upper_boundary_row=i;
-				hair_upper_edge_col=j;
-				break;
-			}
-			else
-			{
-				j++;
-			}
-		}
-		if(hair_upper_edge_col!=0 && hair_upper_boundary_row!=0)
-		{
-			break;
-		}
-	}
-	return hair_upper_boundary_row;
+	//여기에 나오는 count가 앞머리 아랫쪽 경계가 된다.
+	*gray_scale_hair_color = secondmean;
+	return count;
 }
 
 int get_chin_line_bound(CvRect* face_rect) 
@@ -379,7 +372,7 @@ int main(int argc, char* argv[])
 
 
 	//이미지를 로드
-	IplImage *pic = cvLoadImage(argv[1],CV_LOAD_IMAGE_COLOR);
+	IplImage *pic = cvLoadImage("hello_world.jpg",CV_LOAD_IMAGE_COLOR);
 	if(pic == NULL)
 	{
 		printf("사진 파일을 찾을 수 없습니다. Enter키를 누르시면 종료합니다.\n");
@@ -394,7 +387,7 @@ int main(int argc, char* argv[])
 
 
 	//edge detection 먼저
-	edge_detection(argv[1]);
+	edge_detection("hello_world.jpg");
 
 	//이 아래는 얼굴 인식
 	
@@ -416,7 +409,12 @@ int main(int argc, char* argv[])
 	face_rect = (CvRect*) cvGetSeqElem(detected_face, 0);
 
 	//얼굴 이미지에서 눈을 찾아야 할 것 같음
-	cv::Mat face_mat= cv::imread(argv[1]);
+	cv::Mat face_mat= cv::imread("hello_world.jpg");
+
+	cv::Mat pic_gray;
+	cvtColor( face_mat, pic_gray, CV_BGR2GRAY );
+
+
 	// Transform it into the C++ cv::Mat format
 	cv::Mat image(face_mat); 
 
@@ -484,14 +482,19 @@ int main(int argc, char* argv[])
 	eye_upper_bound = (face_rect->y) + (left_eye_rect->y);
 	
 	//윗머리 끝 라인
-	int hair_upper_boundary_row = get_head_upper_bound();
+	int hair_upper_boundary_row = -1;
+	int gray_scale_hair_color = -1;
 
-	//앞머리 라인
-	int front_hair_lower_bound = get_left_front_hair_lower_bound(hair_upper_boundary_row, face_rect->x + left_eye_rect->x + left_eye_rect->width);
+	
+	//스펙트럼을 이용한 앞머리 경계 판정
+	int spectrum_front_hair_lower_bound = mid_front_hair_analysis(pic_gray, face_rect->x + (int)(face_rect->width / 2.0), eye_upper_bound, &gray_scale_hair_color, &hair_upper_boundary_row);
 
 	//회사에서 부수적으로 요구하는 정보
-	int front_hair_left_lower_bound = get_left_front_hair_lower_bound(hair_upper_boundary_row, face_rect->x + left_eye_rect->x + left_eye_rect->width);
-	int front_hair_right_lower_bound = get_right_front_hair_lower_bound(hair_upper_boundary_row, face_rect->x + (int)(face_rect->width / 2.0) + right_eye_rect->x);
+	//int front_hair_left_lower_bound = get_left_front_hair_lower_bound(hair_upper_boundary_row, face_rect->x + left_eye_rect->x + left_eye_rect->width);
+	//int front_hair_right_lower_bound = get_right_front_hair_lower_bound(hair_upper_boundary_row, face_rect->x + (int)(face_rect->width / 2.0) + right_eye_rect->x);
+
+
+	
 
 	int chin_line_bound = get_chin_line_bound(face_rect);
 
@@ -503,7 +506,7 @@ int main(int argc, char* argv[])
 
 	side_hair_style detected_side_hair = judge_side_hairstyle(left_hair_lower_bound, chin_line_bound, hair_upper_boundary_row);
 
-	front_hair_style detected_front_hair = judge_front_hairstyle(front_hair_lower_bound, hair_upper_boundary_row);
+	front_hair_style detected_front_hair = judge_front_hairstyle(spectrum_front_hair_lower_bound, hair_upper_boundary_row);
 
 	show_recommended_hairstyle(detected_front_hair, detected_side_hair);
 
