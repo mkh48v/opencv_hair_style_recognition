@@ -28,7 +28,8 @@ enum front_hair_style
 enum side_hair_style
 {
 	short_left_hair,
-	long_left_hair
+	long_left_hair,
+	tied_hair
 };
 
 void CannyThreshold(int, void*)
@@ -56,40 +57,72 @@ void edge_detection(char* argv)
 	CannyThreshold(0, 0);
 }
 
-
-int mid_front_hair_analysis(cv::Mat gray_scale_mat, int vertical_standard_line, int horizontal_lower_bound, int* gray_scale_hair_color, int* hair_upper_bound) 
+class rgb
+{
+	public:
+		int redsum;
+		int greensum;
+		int bluesum;
+		double redmean;
+		double greenmean;
+		double bluemean;
+};
+int front_hair_analysis(cv::Mat color_pic, int vertical_standard_line, int horizontal_lower_bound, rgb* hair_color, int* hair_upper_bound) 
 {
 	cv::namedWindow("hello");
-	cv::imshow("hello", gray_scale_mat);
-
+	cv::imshow("hello", color_pic);
+	
 	int count = 0;
 
-	//처음 3개 평균내고 시작하기
-	int firstsum = 0;
-	int secondsum = 0;
-	double firstmean;//배경 색깔로 추정
-	double secondmean;//옆머리 색깔 판정할 때 써야 함
+	rgb hello_rgb;
+		
+	hello_rgb.redsum = 0;
+	hello_rgb.greensum = 0;
+	hello_rgb.bluesum = 0;
 	
+	
+	//처음 3개 평균내고 시작하기
 	while(count < 3)
 	{
-		firstsum += gray_scale_mat.at<uchar>( count, vertical_standard_line );
+		int b = color_pic.at<cv::Vec3b>(count,vertical_standard_line)[0];
+		int g = color_pic.at<cv::Vec3b>(count,vertical_standard_line)[1];
+		int r = color_pic.at<cv::Vec3b>(count,vertical_standard_line)[2];
+
+		hello_rgb.bluesum += b;
+		hello_rgb.greensum += g;
+		hello_rgb.redsum += r;
 		count++;
 	}
-	firstmean = firstsum / count;
+	hello_rgb.redmean = hello_rgb.redsum / (double)count;
+	hello_rgb.greenmean = hello_rgb.greensum / (double)count;
+	hello_rgb.bluemean = hello_rgb.bluesum / (double)count;
 
-	count++;
 
 	while(count < horizontal_lower_bound)
 	{
-		if(gray_scale_mat.at<uchar>( count, vertical_standard_line ) < firstmean - 75)
+		if(
+			(color_pic.at<cv::Vec3b>(count,vertical_standard_line)[0] < hello_rgb.bluemean - 50 || color_pic.at<cv::Vec3b>(count,vertical_standard_line)[0] > hello_rgb.bluemean + 50)
+			+(color_pic.at<cv::Vec3b>(count,vertical_standard_line)[1] < hello_rgb.redmean - 50 || color_pic.at<cv::Vec3b>(count,vertical_standard_line)[1] > hello_rgb.redmean + 50)
+			+(color_pic.at<cv::Vec3b>(count,vertical_standard_line)[2] < hello_rgb.greenmean - 50 || color_pic.at<cv::Vec3b>(count,vertical_standard_line)[2] > hello_rgb.greenmean + 50)
+			>1
+			)
 		{
 			break;
 		}
 		else
 		{
-			firstsum += gray_scale_mat.at<uchar>( count, vertical_standard_line );
-			firstmean = firstsum / (double)count;
+			int b = color_pic.at<cv::Vec3b>(count,vertical_standard_line)[0];
+			int g = color_pic.at<cv::Vec3b>(count,vertical_standard_line)[1];
+			int r = color_pic.at<cv::Vec3b>(count,vertical_standard_line)[2];
+
+			hello_rgb.bluesum += b;
+			hello_rgb.greensum += g;
+			hello_rgb.redsum += r;
+
 			count++;
+			hello_rgb.redmean = hello_rgb.redsum / (double)count;
+			hello_rgb.greenmean = hello_rgb.greensum / (double)count;
+			hello_rgb.bluemean = hello_rgb.bluesum / (double)count;
 		}
 	}
 	if(count == horizontal_lower_bound)
@@ -97,7 +130,9 @@ int mid_front_hair_analysis(cv::Mat gray_scale_mat, int vertical_standard_line, 
 		//0이 윗머리 꼭대기이고
 		//앞머리는 매우 긴 것임
 		*hair_upper_bound = 0;
-		*gray_scale_hair_color = firstmean;
+		hair_color->redmean = hello_rgb.redmean;
+		hair_color->greenmean = hello_rgb.greenmean;
+		hair_color->bluemean = hello_rgb.bluemean;
 		return count;
 	}
 
@@ -105,31 +140,59 @@ int mid_front_hair_analysis(cv::Mat gray_scale_mat, int vertical_standard_line, 
 	//윗머리 시작
 	*hair_upper_bound = count;
 
-
-	secondsum = gray_scale_mat.at<uchar>( count, vertical_standard_line ) + gray_scale_mat.at<uchar>( count+1, vertical_standard_line ) + gray_scale_mat.at<uchar>( count+2, vertical_standard_line );
-	int secondcount = 3;
-	secondmean = secondsum / (double)secondcount;
-	secondcount++;
-
-	count += 3;
-	while(count < horizontal_lower_bound)
+	hello_rgb.redsum = 0;
+	hello_rgb.greensum = 0;
+	hello_rgb.bluesum = 0;
+	
+	int hair_analysis_count = 0;
+	while (hair_analysis_count < 3)
 	{
-		if(gray_scale_mat.at<uchar>( count, vertical_standard_line ) > secondmean + 75)
+		int b = color_pic.at<cv::Vec3b>(count + hair_analysis_count,vertical_standard_line)[0];
+		int g = color_pic.at<cv::Vec3b>(count + hair_analysis_count,vertical_standard_line)[1];
+		int r = color_pic.at<cv::Vec3b>(count + hair_analysis_count,vertical_standard_line)[2];
+
+		hello_rgb.bluesum += b;
+		hello_rgb.greensum += g;
+		hello_rgb.redsum += r;
+		hair_analysis_count++;
+	}
+	hello_rgb.redmean = hello_rgb.redsum / (double)hair_analysis_count;
+	hello_rgb.greenmean = hello_rgb.greensum / (double)hair_analysis_count;
+	hello_rgb.bluemean = hello_rgb.bluesum / (double)hair_analysis_count;
+
+	while(count + hair_analysis_count < horizontal_lower_bound)
+	{
+		if(
+			(color_pic.at<cv::Vec3b>(count + hair_analysis_count,vertical_standard_line)[0] < hello_rgb.bluemean - 50 || color_pic.at<cv::Vec3b>(count + hair_analysis_count,vertical_standard_line)[0] > hello_rgb.bluemean + 50)
+			+(color_pic.at<cv::Vec3b>(count + hair_analysis_count,vertical_standard_line)[1] < hello_rgb.redmean - 50 || color_pic.at<cv::Vec3b>(count + hair_analysis_count,vertical_standard_line)[1] > hello_rgb.redmean + 50)
+			+(color_pic.at<cv::Vec3b>(count + hair_analysis_count,vertical_standard_line)[2] < hello_rgb.greenmean - 50 || color_pic.at<cv::Vec3b>(count + hair_analysis_count,vertical_standard_line)[2] > hello_rgb.greenmean + 50)
+			>1
+			)
 		{
 			break;
 		}
 		else
 		{
-			secondsum += gray_scale_mat.at<uchar>( count, vertical_standard_line );
-			secondmean = secondsum / (double)secondcount;
-			secondcount++;
-			count++;
+			int b = color_pic.at<cv::Vec3b>(count + hair_analysis_count,vertical_standard_line)[0];
+			int g = color_pic.at<cv::Vec3b>(count + hair_analysis_count,vertical_standard_line)[1];
+			int r = color_pic.at<cv::Vec3b>(count + hair_analysis_count,vertical_standard_line)[2];
+
+			hello_rgb.bluesum += b;
+			hello_rgb.greensum += g;
+			hello_rgb.redsum += r;
+
+			hair_analysis_count++;
+			hello_rgb.redmean = hello_rgb.redsum / (double)hair_analysis_count;
+			hello_rgb.greenmean = hello_rgb.greensum / (double)hair_analysis_count;
+			hello_rgb.bluemean = hello_rgb.bluesum / (double)hair_analysis_count;
 		}
 	}
 
-	//여기에 나오는 count가 앞머리 아랫쪽 경계가 된다.
-	*gray_scale_hair_color = secondmean;
-	return count;
+	hair_color->redmean = hello_rgb.redmean;
+	hair_color->greenmean = hello_rgb.greenmean;
+	hair_color->bluemean = hello_rgb.bluemean;
+	
+	return count+hair_analysis_count;
 }
 
 int get_chin_line_bound(CvRect* face_rect, cv::Mat gray_scale_mat) 
@@ -292,6 +355,12 @@ void show_recommended_hairstyle( front_hair_style detected_front_hair, side_hair
 		cv::namedWindow("recommended hairstyle");
 		cv::imshow("recommended hairstyle",hairtyle_image);
 	}
+	else if(detected_front_hair == long_front_hair && detected_side_hair == tied_hair)
+	{
+		cv::Mat hairtyle_image= cv::imread("frontlong_sideshort.png");
+		cv::namedWindow("recommended hairstyle");
+		cv::imshow("recommended hairstyle",hairtyle_image);
+	}
 	
 	//앞머리 없는 여자
 	else if(detected_front_hair == no_front_hair && detected_side_hair == long_left_hair)
@@ -303,6 +372,12 @@ void show_recommended_hairstyle( front_hair_style detected_front_hair, side_hair
 	else if(detected_front_hair == no_front_hair && detected_side_hair == short_left_hair)
 	{
 		cv::Mat hairtyle_image= cv::imread("frontshort_sidemedium.png");
+		cv::namedWindow("recommended hairstyle");
+		cv::imshow("recommended hairstyle",hairtyle_image);
+	}
+	else if(detected_front_hair == no_front_hair && detected_side_hair == tied_hair)
+	{
+		cv::Mat hairtyle_image= cv::imread("frontshort_sideshort.png");
 		cv::namedWindow("recommended hairstyle");
 		cv::imshow("recommended hairstyle",hairtyle_image);
 	}
@@ -324,7 +399,7 @@ side_hair_style judge_side_hairstyle( int left_hair_lower_bound, int chin_line_b
 	}
 	else
 	{
-		detected_side_hair = short_left_hair;
+		detected_side_hair = tied_hair;
 	}
 	return detected_side_hair;
 }
@@ -344,6 +419,12 @@ front_hair_style judge_front_hairstyle(int front_hair_lower_bound, int hair_uppe
 		detected_front_hair =  no_front_hair;
 	}
 	return detected_front_hair;
+}
+
+int determine_front_hair_bound(int mid_front, int left_front, int right_front)
+{
+	int judged_value = 0;
+	return judged_value;
 }
 
 int main(int argc, char* argv[])
@@ -472,19 +553,14 @@ int main(int argc, char* argv[])
 	
 	//윗머리 끝 라인
 	int hair_upper_boundary_row = -1;
-	int gray_scale_hair_color = -1;
+	rgb hair_color;
 
 	
 	//스펙트럼을 이용한 앞머리 경계 판정
-	int spectrum_front_hair_lower_bound = mid_front_hair_analysis(pic_gray, face_rect->x + (int)(face_rect->width / 2.0), eye_upper_bound, &gray_scale_hair_color, &hair_upper_boundary_row);
 	
-
-
-	//회사에서 부수적으로 요구하는 정보
-	//int front_hair_left_lower_bound = get_left_front_hair_lower_bound(hair_upper_boundary_row, face_rect->x + left_eye_rect->x + left_eye_rect->width);
-	//int front_hair_right_lower_bound = get_right_front_hair_lower_bound(hair_upper_boundary_row, face_rect->x + (int)(face_rect->width / 2.0) + right_eye_rect->x);
-
-
+	int front_hair_left_lower_bound = front_hair_analysis(face_mat, face_rect->x + left_eye_rect->x + left_eye_rect->width, eye_upper_bound, &hair_color, &hair_upper_boundary_row);
+	int front_hair_right_lower_bound = front_hair_analysis(face_mat, face_rect->x + (int)(face_rect->width / 2.0) + right_eye_rect->x, eye_upper_bound, &hair_color, &hair_upper_boundary_row);
+	int mid_front_hair_lower_bound = front_hair_analysis(face_mat, face_rect->x + (int)(face_rect->width / 2.0), eye_upper_bound, &hair_color, &hair_upper_boundary_row);
 
 	int chin_line_bound = get_chin_line_bound(face_rect, pic_gray);
 	
@@ -492,7 +568,7 @@ int main(int argc, char* argv[])
 
 	side_hair_style detected_side_hair = judge_side_hairstyle(left_hair_lower_bound, chin_line_bound, hair_upper_boundary_row);
 
-	front_hair_style detected_front_hair = judge_front_hairstyle(spectrum_front_hair_lower_bound, hair_upper_boundary_row);
+	front_hair_style detected_front_hair = judge_front_hairstyle(mid_front_hair_lower_bound, hair_upper_boundary_row);
 
 	show_recommended_hairstyle(detected_front_hair, detected_side_hair);
 
