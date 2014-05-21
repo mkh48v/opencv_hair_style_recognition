@@ -72,38 +72,38 @@ int front_hair_analysis(cv::Mat color_pic, int vertical_standard_line, int horiz
 	cv::namedWindow("hello");
 	cv::imshow("hello", color_pic);
 	
-	int count = 0;
+	int count = horizontal_lower_bound;
 
-	rgb hello_rgb;
+	rgb first_part_rgb;
 		
-	hello_rgb.redsum = 0;
-	hello_rgb.greensum = 0;
-	hello_rgb.bluesum = 0;
+	first_part_rgb.redsum = 0;
+	first_part_rgb.greensum = 0;
+	first_part_rgb.bluesum = 0;
 	
 	
 	//처음 3개 평균내고 시작하기
-	while(count < 3)
+	while(count > horizontal_lower_bound - 3)
 	{
 		int b = color_pic.at<cv::Vec3b>(count,vertical_standard_line)[0];
 		int g = color_pic.at<cv::Vec3b>(count,vertical_standard_line)[1];
 		int r = color_pic.at<cv::Vec3b>(count,vertical_standard_line)[2];
 
-		hello_rgb.bluesum += b;
-		hello_rgb.greensum += g;
-		hello_rgb.redsum += r;
-		count++;
+		first_part_rgb.bluesum += b;
+		first_part_rgb.greensum += g;
+		first_part_rgb.redsum += r;
+		count--;
 	}
-	hello_rgb.redmean = hello_rgb.redsum / (double)count;
-	hello_rgb.greenmean = hello_rgb.greensum / (double)count;
-	hello_rgb.bluemean = hello_rgb.bluesum / (double)count;
+	first_part_rgb.redmean = first_part_rgb.redsum / (double)(horizontal_lower_bound - count);
+	first_part_rgb.greenmean = first_part_rgb.greensum / (double)(horizontal_lower_bound - count);
+	first_part_rgb.bluemean = first_part_rgb.bluesum / (double)(horizontal_lower_bound - count);
 
 
-	while(count < horizontal_lower_bound)
+	while(count > 0)
 	{
 		if(
-			(color_pic.at<cv::Vec3b>(count,vertical_standard_line)[0] < hello_rgb.bluemean - 50 || color_pic.at<cv::Vec3b>(count,vertical_standard_line)[0] > hello_rgb.bluemean + 50)
-			+(color_pic.at<cv::Vec3b>(count,vertical_standard_line)[1] < hello_rgb.redmean - 50 || color_pic.at<cv::Vec3b>(count,vertical_standard_line)[1] > hello_rgb.redmean + 50)
-			+(color_pic.at<cv::Vec3b>(count,vertical_standard_line)[2] < hello_rgb.greenmean - 50 || color_pic.at<cv::Vec3b>(count,vertical_standard_line)[2] > hello_rgb.greenmean + 50)
+			(color_pic.at<cv::Vec3b>(count,vertical_standard_line)[0] < first_part_rgb.bluemean - 50 || color_pic.at<cv::Vec3b>(count,vertical_standard_line)[0] > first_part_rgb.bluemean + 50)
+			+(color_pic.at<cv::Vec3b>(count,vertical_standard_line)[1] < first_part_rgb.redmean - 50 || color_pic.at<cv::Vec3b>(count,vertical_standard_line)[1] > first_part_rgb.redmean + 50)
+			+(color_pic.at<cv::Vec3b>(count,vertical_standard_line)[2] < first_part_rgb.greenmean - 50 || color_pic.at<cv::Vec3b>(count,vertical_standard_line)[2] > first_part_rgb.greenmean + 50)
 			>1
 			)
 		{
@@ -115,57 +115,56 @@ int front_hair_analysis(cv::Mat color_pic, int vertical_standard_line, int horiz
 			int g = color_pic.at<cv::Vec3b>(count,vertical_standard_line)[1];
 			int r = color_pic.at<cv::Vec3b>(count,vertical_standard_line)[2];
 
-			hello_rgb.bluesum += b;
-			hello_rgb.greensum += g;
-			hello_rgb.redsum += r;
+			first_part_rgb.bluesum += b;
+			first_part_rgb.greensum += g;
+			first_part_rgb.redsum += r;
 
-			count++;
-			hello_rgb.redmean = hello_rgb.redsum / (double)count;
-			hello_rgb.greenmean = hello_rgb.greensum / (double)count;
-			hello_rgb.bluemean = hello_rgb.bluesum / (double)count;
+			count--;
+			first_part_rgb.redmean = first_part_rgb.redsum / (double)(horizontal_lower_bound - count);
+			first_part_rgb.greenmean = first_part_rgb.greensum / (double)(horizontal_lower_bound - count);
+			first_part_rgb.bluemean = first_part_rgb.bluesum / (double)(horizontal_lower_bound - count);
 		}
 	}
-	if(count == horizontal_lower_bound)
+	if(count == 0)
 	{
 		//0이 윗머리 꼭대기이고
 		//앞머리는 매우 긴 것임
 		*hair_upper_bound = 0;
-		hair_color->redmean = hello_rgb.redmean;
-		hair_color->greenmean = hello_rgb.greenmean;
-		hair_color->bluemean = hello_rgb.bluemean;
-		return count;
+		hair_color->redmean = first_part_rgb.redmean;
+		hair_color->greenmean = first_part_rgb.greenmean;
+		hair_color->bluemean = first_part_rgb.bluemean;
+		return horizontal_lower_bound;
 	}
 
+	int returnvalue = count;
 
-	//윗머리 시작
-	*hair_upper_bound = count;
-
-	hello_rgb.redsum = 0;
-	hello_rgb.greensum = 0;
-	hello_rgb.bluesum = 0;
+	rgb second_part_rgb;
+	second_part_rgb.redsum = 0;
+	second_part_rgb.greensum = 0;
+	second_part_rgb.bluesum = 0;
 	
-	int hair_analysis_count = 0;
-	while (hair_analysis_count < 3)
+	int hair_analysis_count = count;
+	while (hair_analysis_count > count - 3)
 	{
-		int b = color_pic.at<cv::Vec3b>(count + hair_analysis_count,vertical_standard_line)[0];
-		int g = color_pic.at<cv::Vec3b>(count + hair_analysis_count,vertical_standard_line)[1];
-		int r = color_pic.at<cv::Vec3b>(count + hair_analysis_count,vertical_standard_line)[2];
+		int b = color_pic.at<cv::Vec3b>(hair_analysis_count,vertical_standard_line)[0];
+		int g = color_pic.at<cv::Vec3b>(hair_analysis_count,vertical_standard_line)[1];
+		int r = color_pic.at<cv::Vec3b>(hair_analysis_count,vertical_standard_line)[2];
 
-		hello_rgb.bluesum += b;
-		hello_rgb.greensum += g;
-		hello_rgb.redsum += r;
-		hair_analysis_count++;
+		second_part_rgb.bluesum += b;
+		second_part_rgb.greensum += g;
+		second_part_rgb.redsum += r;
+		hair_analysis_count--;
 	}
-	hello_rgb.redmean = hello_rgb.redsum / (double)hair_analysis_count;
-	hello_rgb.greenmean = hello_rgb.greensum / (double)hair_analysis_count;
-	hello_rgb.bluemean = hello_rgb.bluesum / (double)hair_analysis_count;
+	second_part_rgb.redmean = second_part_rgb.redsum / (double)(count - hair_analysis_count);
+	second_part_rgb.greenmean = second_part_rgb.greensum / (double)(count - hair_analysis_count);
+	second_part_rgb.bluemean = second_part_rgb.bluesum / (double)(count - hair_analysis_count);
 
-	while(count + hair_analysis_count < horizontal_lower_bound)
+	while(hair_analysis_count > 0)
 	{
 		if(
-			(color_pic.at<cv::Vec3b>(count + hair_analysis_count,vertical_standard_line)[0] < hello_rgb.bluemean - 50 || color_pic.at<cv::Vec3b>(count + hair_analysis_count,vertical_standard_line)[0] > hello_rgb.bluemean + 50)
-			+(color_pic.at<cv::Vec3b>(count + hair_analysis_count,vertical_standard_line)[1] < hello_rgb.redmean - 50 || color_pic.at<cv::Vec3b>(count + hair_analysis_count,vertical_standard_line)[1] > hello_rgb.redmean + 50)
-			+(color_pic.at<cv::Vec3b>(count + hair_analysis_count,vertical_standard_line)[2] < hello_rgb.greenmean - 50 || color_pic.at<cv::Vec3b>(count + hair_analysis_count,vertical_standard_line)[2] > hello_rgb.greenmean + 50)
+			(color_pic.at<cv::Vec3b>(hair_analysis_count,vertical_standard_line)[0] < second_part_rgb.bluemean - 50 || color_pic.at<cv::Vec3b>(hair_analysis_count,vertical_standard_line)[0] > second_part_rgb.bluemean + 50)
+			+(color_pic.at<cv::Vec3b>(hair_analysis_count,vertical_standard_line)[1] < second_part_rgb.redmean - 50 || color_pic.at<cv::Vec3b>(hair_analysis_count,vertical_standard_line)[1] > second_part_rgb.redmean + 50)
+			+(color_pic.at<cv::Vec3b>(hair_analysis_count,vertical_standard_line)[2] < second_part_rgb.greenmean - 50 || color_pic.at<cv::Vec3b>(hair_analysis_count,vertical_standard_line)[2] > second_part_rgb.greenmean + 50)
 			>1
 			)
 		{
@@ -177,22 +176,35 @@ int front_hair_analysis(cv::Mat color_pic, int vertical_standard_line, int horiz
 			int g = color_pic.at<cv::Vec3b>(count + hair_analysis_count,vertical_standard_line)[1];
 			int r = color_pic.at<cv::Vec3b>(count + hair_analysis_count,vertical_standard_line)[2];
 
-			hello_rgb.bluesum += b;
-			hello_rgb.greensum += g;
-			hello_rgb.redsum += r;
+			second_part_rgb.bluesum += b;
+			second_part_rgb.greensum += g;
+			second_part_rgb.redsum += r;
 
-			hair_analysis_count++;
-			hello_rgb.redmean = hello_rgb.redsum / (double)hair_analysis_count;
-			hello_rgb.greenmean = hello_rgb.greensum / (double)hair_analysis_count;
-			hello_rgb.bluemean = hello_rgb.bluesum / (double)hair_analysis_count;
+			hair_analysis_count--;
+			second_part_rgb.redmean = second_part_rgb.redsum / (double)(count - hair_analysis_count);
+			second_part_rgb.greenmean = second_part_rgb.greensum / (double)(count - hair_analysis_count);
+			second_part_rgb.bluemean = second_part_rgb.bluesum / (double)(count - hair_analysis_count);
 		}
 	}
+	if(hair_analysis_count == 0)
+	{
+		//머리가 긴 것임
+		hair_color->redmean = first_part_rgb.redmean;
+		hair_color->greenmean = first_part_rgb.greenmean;
+		hair_color->bluemean = first_part_rgb.bluemean;
 
-	hair_color->redmean = hello_rgb.redmean;
-	hair_color->greenmean = hello_rgb.greenmean;
-	hair_color->bluemean = hello_rgb.bluemean;
+		*hair_upper_bound = count;
+		return horizontal_lower_bound;
+	}
+	else
+	{
+		hair_color->redmean = second_part_rgb.redmean;
+		hair_color->greenmean = second_part_rgb.greenmean;
+		hair_color->bluemean = second_part_rgb.bluemean;
 	
-	return count+hair_analysis_count;
+		*hair_upper_bound = hair_analysis_count;
+		return returnvalue;
+	}
 }
 
 int get_chin_line_bound(CvRect* face_rect, cv::Mat gray_scale_mat) 
@@ -568,9 +580,11 @@ int main(int argc, char* argv[])
 
 	side_hair_style detected_side_hair = judge_side_hairstyle(left_hair_lower_bound, chin_line_bound, hair_upper_boundary_row);
 
-	front_hair_style detected_front_hair = judge_front_hairstyle(mid_front_hair_lower_bound, hair_upper_boundary_row);
+	front_hair_style mid_front_hair_style = judge_front_hairstyle(mid_front_hair_lower_bound, hair_upper_boundary_row);
+	front_hair_style left_front_hair_style = judge_front_hairstyle(front_hair_left_lower_bound, hair_upper_boundary_row);
+	front_hair_style right_front_hair_style = judge_front_hairstyle(front_hair_right_lower_bound, hair_upper_boundary_row);
 
-	show_recommended_hairstyle(detected_front_hair, detected_side_hair);
+	show_recommended_hairstyle(mid_front_hair_style, detected_side_hair);
 
 	cvShowImage("original image (exit = esc)",pic);
 	cvWaitKey(0);
