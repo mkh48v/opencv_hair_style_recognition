@@ -67,11 +67,9 @@ int get_upper_hair_color(int vertical_center_of_hair, int front_hair_lower_bound
 	double mean_of_hair_color = gray_scale_mat.at<uchar>(front_hair_lower_bound + 3,vertical_center_of_hair);
 	sum_of_hair_color = mean_of_hair_color;
 	int size_of_sample = 1;
-	std::vector<int> myvector;
 
 	while(front_hair_lower_bound > head_upper_bound)
 	{
-		myvector.push_back(gray_scale_mat.at<uchar>(front_hair_lower_bound,vertical_center_of_hair));
 		if( gray_scale_mat.at<uchar>(front_hair_lower_bound,vertical_center_of_hair) > mean_of_hair_color + 30)
 		{
 			front_hair_lower_bound--;
@@ -101,11 +99,9 @@ int get_left_hair_color(cv::Mat gray_scale_mat, int starting_left_pos, int right
 	double mean_of_hair_color = gray_scale_mat.at<uchar>(searching_line, starting_left_pos);
 	sum_of_hair_color = mean_of_hair_color;
 	int size_of_sample = 1;
-	std::vector<int> myvector;
 
 	while(starting_left_pos < right_iter_bound)
 	{
-		myvector.push_back(gray_scale_mat.at<uchar>(searching_line,starting_left_pos));
 		if( gray_scale_mat.at<uchar>(searching_line,starting_left_pos) > mean_of_hair_color + 50)
 		{
 			starting_left_pos++;
@@ -131,8 +127,6 @@ int get_left_hair_color(cv::Mat gray_scale_mat, int starting_left_pos, int right
 
 int get_left_hair_lower_bound(int front_hair_color, int chin_line_bound, int starting_lower_bound, int left_iter_bound, int right_iter_bound, cv::Mat gray_scale_mat) 
 {
-	std::vector<int> myvector;
-
 	//옆머리가 귀 아래에 있는지 없는지 먼저 확인한다.
 	int left_hair_left_bound = left_iter_bound;
 	while(left_hair_left_bound < right_iter_bound)
@@ -329,7 +323,7 @@ int main(int argc, char* argv[])
 
 
 	//이미지를 로드
-	IplImage *pic = cvLoadImage("hello_world.jpg",CV_LOAD_IMAGE_COLOR);
+	IplImage *pic = cvLoadImage(argv[1],CV_LOAD_IMAGE_COLOR);
 	if(pic == NULL)
 	{
 		printf("사진 파일을 찾을 수 없습니다. Enter키를 누르시면 종료합니다.\n");
@@ -362,7 +356,7 @@ int main(int argc, char* argv[])
 	face_rect = (CvRect*) cvGetSeqElem(detected_face, 0);
 
 	//얼굴 이미지에서 눈을 찾아야 할 것 같음
-	cv::Mat face_mat= cv::imread("hello_world.jpg");
+	cv::Mat face_mat= cv::imread(argv[1]);
 
 	cv::Mat pic_gray;
 	cvtColor( face_mat, pic_gray, CV_BGR2GRAY );
